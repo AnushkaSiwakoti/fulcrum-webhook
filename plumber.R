@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Add required libraries
 library(plumber)
 library(dplyr)
