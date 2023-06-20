@@ -144,7 +144,8 @@ function(pr) {
               # 
               # # Update the shipment record with the attachment ID
               # update_record(appname = 'shipment_app_name', record_id, shipment)
-            
+            # Return response
+              return(res$sendStatus(200))
           }
         }
       }
