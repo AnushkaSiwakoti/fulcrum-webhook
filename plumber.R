@@ -1,4 +1,3 @@
-
 # Add required libraries
 library(plumber)
 library(dplyr)
@@ -10,6 +9,7 @@ library(data.table)
 library(rlist)
 library(stringr)
 
+# source the required files
 source('get_record.R')
 source('fulcrum_file_upload.R')
 
@@ -26,11 +26,11 @@ function(pr) {
           req$HTTP_USER_AGENT, "@", req$REMOTE_ADDR, "\n")
       
       # Get the shipment record using the record ID
-      record <- jsonlite::parse_json( req$postBody)
+      record <- jsonlite::parse_json(req$postBody)
       record_id <- record$data$id
-      shipment <- get_record(record_id)
       
-      
+      api_token <- Sys.getenv('FULCRUM_API_NEON')
+      shipment <- get_record(record_id, api_token)
       
       # Check if shipment manifest is "yes" and no attachment ID exists
       # record$data$form_values$field_id
@@ -62,7 +62,9 @@ function(pr) {
             samp_list <- array_parse[lapply(array_parse, '[[', 'sampleclass') == unlist(all_types[t])]
             samp_filter <- rmNullObs(samp_list)
             samp_po <- po[names(po) %in% names(samp_filter[[1]])]
-            sample_mapping <- get_record(appname = 'sample_mapping', idfield = 'sampleclass', idvalue = all_types[t])
+            # sample_mapping <- get_record(appname = 'sample_mapping', idfield = 'sampleclass', idvalue = all_types[t])
+            sample_mapping <- get_record(idvalue = all_types[t], api_token)
+            
             
             # Iterate over sample mappings
             for (m in 1:length(sample_mapping$rows)) {
@@ -112,40 +114,16 @@ function(pr) {
             colnames(draft_manifest) <- names(inventory_samples[[1]])
             
             # Write draft manifest to a CSV file
-            draft_manifest_filename <- paste0(shipment$shipment_id, "_draft_manifest.csv")
+            draft_manifest_filename <- paste0(shipment$data$shipment_id, "_draft_manifest.csv")
             write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
             
-            # Download the manifest
-            output$download_manifest <- downloadHandler(
-              filename = function() {
-                paste0(shipment$shipment_id, "_manifest_on_", Sys.Date(), ".csv")
-              },
-              content = function(file) {
-                file_path <- file
-                write.csv(draft_manifest, file, row.names = FALSE, quote = TRUE)
-                ## convert fulcrum_data to a matrix or else server will crash
-                write.table(x = as.matrix(dat[, colSums(!is.na(dat)) > 0 &!colnames(dat)%in%'fulcrum_id']), file,
-                            sep = ",", row.names = FALSE, fileEncoding = "UTF-8",
-                            na = '')
-              },
-              contentType = "text/csv"
-            )
-            
             # Upload the draft manifest file to Fulcrum
-        
-              #field_name <- "attachment"  # Replace with the actual field name
-              form_values <- get_record(api_token, record_id)
-              
-              # Upload the file to Fulcrum
-              attachment_id <- uploadFile( record_id,filepath,formvalues,attacmentkey)
-              
-              # # Attach the file to the shipment record
-              # shipment$manifest_draft$attachment_id <- attachment_id
-              # 
-              # # Update the shipment record with the attachment ID
-              # update_record(appname = 'shipment_app_name', record_id, shipment)
-            # Return response
-              return(res$sendStatus(200))
+            form_values <- get_record(record_id, api_token)
+            filepath <- draft_manifest_filename
+            attachment_key <- 'cf80'
+            uploadFile(api_token, record_id, filepath, form_values, attachment_key)
+            
+            return(res$sendStatus(200))
           }
         }
       }
