@@ -114,30 +114,14 @@ function(pr) {
             colnames(draft_manifest) <- names(inventory_samples[[1]])
             
             # Write draft manifest to a CSV file
-            tryCatch(
-              expr = {
-                draft_manifest_filename <- paste0(shipment$data$shipment_id, "_draft_manifest.csv")
-                write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
-              },
-              error = function(e) {
-                print(paste("Error writing draft manifest:", e$message))
-                # Add any necessary error handling code
-              }
-            )
+            draft_manifest_filename <- paste0(shipment$data$shipment_id, "_draft_manifest.csv")
+            write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
             
             # Upload the draft manifest file to Fulcrum
-            tryCatch(
-              expr = {
-                form_values <- get_record(record_id, api_token)
-                filepath <- draft_manifest_filename
-                attachment_key <- 'cf80'
-                uploadFile(api_token, record_id, filepath, form_values, attachment_key)
-              },
-              error = function(e) {
-                print(paste("Error uploading draft manifest:", e$message))
-                # Add any necessary error handling code
-              }
-            )
+            form_values <- get_record(record_id, api_token)
+            filepath <- draft_manifest_filename
+            attachment_key <- 'cf80'
+            uploadFile(api_token, record_id, filepath, form_values, attachment_key)
             
             return(res$sendStatus(200))
           }
