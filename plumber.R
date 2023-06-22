@@ -34,7 +34,7 @@ function(pr){
         print('payload found')
         shipment <- jsonlite::parse_json( req$postBody)
         record_id <- record$data$id
-        
+        print('record_id')
         api_token <- Sys.getenv('FULCRUM_API_NEON')
         
         # Check if shipment manifest is "yes" and no attachment ID exists
