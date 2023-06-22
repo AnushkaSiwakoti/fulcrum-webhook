@@ -33,7 +33,7 @@ function(pr){
       } else {
         print('payload found')
         shipment <- jsonlite::parse_json( req$postBody)
-        record_id <- record$data$id
+        record_id <- shipment$data$id
         print('record_id')
         api_token <- Sys.getenv('FULCRUM_API_NEON')
         
