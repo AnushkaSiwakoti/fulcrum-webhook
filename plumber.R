@@ -17,7 +17,7 @@ function(pr) {
   pr %>%
     pr_filter('scs-dev', function(req, res) {
       # Retrieve the record ID from the request body
-      record <- req$postBody
+      record <- jsonlite::fromJSON(req$postBody)
       record_id <- record$data$id
       
       api_token <- Sys.getenv('FULCRUM_API_NEON')
