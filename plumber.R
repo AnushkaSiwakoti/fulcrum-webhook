@@ -17,7 +17,7 @@ function(pr) {
   pr %>%
     pr_filter('scs-dev', function(req, res) {
       # Retrieve the record ID from the request body
-      record <- jsonlite::parse_json(req$postBody)
+      record <- req$postBody
       record_id <- record$data$id
       
       api_token <- Sys.getenv('FULCRUM_API_NEON')
@@ -107,14 +107,14 @@ function(pr) {
               draft_manifest_filename <- glue::glue("{shipment$data$shipment_id}_draft_manifest.csv")
               
               write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
-             
-               form_values <- get_record(record_id, api_token)
-             
-                filepath <- draft_manifest_filename
               
-                attachment_key <- "cf80"
+              form_values <- get_record(record_id, api_token)
               
-                uploadFile(api_token, record_id, filepath, form_values, attachment_key)
+              filepath <- draft_manifest_filename
+              
+              attachment_key <- "cf80"
+              
+              uploadFile(api_token, record_id, filepath, form_values, attachment_key)
               return(res$sendStatus(200))
             }
           }
@@ -122,5 +122,4 @@ function(pr) {
       }
     })
 }
-
 
