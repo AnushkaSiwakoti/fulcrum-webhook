@@ -17,23 +17,33 @@ function(pr) {
   pr %>%
     pr_filter('scs-dev', function(req, res) {
       # Retrieve the record ID from the request body
-     
-      shipment <- jsonlite::fromJSON(req$postBody)
-      record_id <- shipmentd$data$id
+      if (is.null(req$postBody)) {
+        res$status <- 404
+        return(list(error = "Body not found"))
+      } else {
+        print("Creating draft manifest...")
+        record_json <- jsonlite::toJSON(req$postBody)
+        record <- jsonlite::fromJSON(record_json)
+        shipment <- jsonlite::fromJSON(record_json)
+        
+       
+        
+      # record <- jsonlite::fromJSON(req$postBody)
+        record_id <- record$record$id
+        print(record_id)
       
       api_token <- Sys.getenv('FULCRUM_API_NEON')
-      #shipment <- jsonlite::fromJSON(get_record(record_id, api_token))
+      #shipment <- get_record(record_id, api_token)
       
       # Check if shipment manifest is "yes" and no attachment ID exists
-      if (shipment$data$form_values$`0ce0` == "yes" && is.null(shipment$data$form_values$`cf80`)) {
-        if (is.null(req$postBody)) {
-          res$status <- 404
-          return(list(error = "Body not found"))
-        } else {
-          print("Creating draft manifest...")
-          
+      if (!is.null(record$record$form_values$`0ce0`) && record$record$form_values$`0ce0` == "yes" && is.null(record$record$form_values$`cf80`)) {
+       
+        print('>>>> SHIPPING CREATION RECORD DETECTED >>>>')
+        recordid <- record$record$`_record_id`
+        coc_num <- record$record$coc_number #chain of custody number to link creation and review records
+        print(coc_num)
           # Get the sample array from the shipment creation record
-          sample_array <- unlist(shipment$data$form_values$`88f2`)
+          sample_array <- unlist(record$record$form_values$`88f2`)
           
           if (any(grepl("storageCode", sample_array))) {
             print(">>>> STORAGE CODE DETECTED >>>>>>>")
