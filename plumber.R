@@ -16,6 +16,11 @@ source('fulcrum_file_upload.R')
 function(pr) {
   pr %>%
     pr_filter('scs-dev', function(req, res) {
+       print(paste0('>>>>>>>>>>>>LOGGER ACTIVE<<<<<<<<<<<<<<<', Sys.time()))
+      #print( ls.str(env=req))  #this is used to checkout the request that is being posted to the webhook
+      cat( as.character( Sys.time()), "-",
+           req$REQUEST_METHOD, req$PATH_INFO, "-",
+           req$HTTP_USER_AGENT, "@", req$REMOTE_ADDR, "\n")
       # Retrieve the record ID from the request body
       if (is.null(req$postBody)) {
         res$status <- 404
