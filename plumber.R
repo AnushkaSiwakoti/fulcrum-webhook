@@ -110,10 +110,10 @@ function(pr) {
             colnames(draft_manifest) <- names(inventory_samples[[1]])
             draft_manifest_filename <- glue::glue("{shipment$data$shipment_id}_draft_manifest.csv")
             write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
-            form_values <- get_record(recordID, api_token)
+            form_values <- get_record(record_id, api_token)
             filepath <- draft_manifest_filename
             attachment_key <- "cf80"
-            uploadFile(api_token, recordID, filepath, form_values, attachment_key)
+            uploadFile(api_token, record_id, filepath, form_values, attachment_key)
             print("Draft manifest created and uploaded.")
             return(list(status = 200))
           } else {
