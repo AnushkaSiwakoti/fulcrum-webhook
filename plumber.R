@@ -22,21 +22,26 @@ function(pr) {
         return(list(error = "Body not found"))
       } else {
         print("Creating draft manifest...")
-        record_json <- jsonlite::toJSON(req$postBody)
+       
+        body <- req$postBody
+        record <- fromJSON(body)
+        
+        record_id <- record$id
+        
+        record_json <- jsonlite::toJSON(body)
         record <- jsonlite::fromJSON(record_json)
         shipment <- jsonlite::fromJSON(record_json)
         
-       
+        
         
       # record <- jsonlite::fromJSON(req$postBody)
-        record_id <- record$record$id
-        print(record_id)
+        
       
       api_token <- Sys.getenv('FULCRUM_API_NEON')
       #shipment <- get_record(record_id, api_token)
       
       # Check if shipment manifest is "yes" and no attachment ID exists
-      if (!is.null(record$record$form_values$`0ce0`) && record$record$form_values$`0ce0` == "yes" && is.null(record$record$form_values$`cf80`)) {
+      if (!is.null(record$form_values$`0ce0`) && record$form_values$`0ce0` == "yes" && is.null(record$form_values$`cf80`)) {
        
         print('>>>> SHIPPING CREATION RECORD DETECTED >>>>')
         recordid <- record$record$`_record_id`
