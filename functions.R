@@ -117,7 +117,9 @@ get_record<- function(record_id, api_token){
 
 
 ## A helper function that tests whether an object is either NULL or a list of NULLs
-is.NullOb <- function(x) is.null(x) | all(sapply(x, is.null))
+is.NullOb <- function(x) {
+  is.null(x) || (is.list(x) && all(sapply(x, is.NullOb)))
+}
 
 ## Recursively step down into list, removing all such objects 
 rmNullObs <- function(x) {
