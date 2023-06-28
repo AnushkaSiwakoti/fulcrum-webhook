@@ -30,7 +30,7 @@ function(pr) {
         
         record <- jsonlite::parse_json( req$postBody)
         
-        
+
         
         if( !is.null( record$type) && record$type %in% c('record.create', 'record.update') ){
           record_id <- record$id
@@ -40,7 +40,7 @@ function(pr) {
           
           if( !is.null(form_id) && form_id == "555deee5-7e4d-4558-8101-148dfa06d870"){
             print("Shipment creation payload found")
-            
+            print(req$postBody)
             
             # Check if shipment manifest is "yes" and no attachment ID exists
             if (!is.null(record$data$form_values$`0ce0`) && record$data$form_values$`0ce0` == "yes" && is.null(record$data$form_values$`cf80`)) {
@@ -49,7 +49,7 @@ function(pr) {
               
               # Get the sample array from the shipment creation record
               sample_array <- unlist(record$data$form_values$`88f2`)
-              
+
               # Parse the sample array
               sample_array <- strsplit(sample_array, "|", fixed = TRUE)[[1]]
               array_parse <- list()
@@ -69,10 +69,11 @@ function(pr) {
                 attachment_key <- "cf80"
                 uploadFile(api_token, record_id, filepath, form_values, attachment_key)
                 print("Draft manifest created and uploaded.")
-                
+                res$status <- 200
                 return(list(status = 200))
               } else {
                 print("Draft manifest not created and uploaded.")
+                res$status <- 500
                 return(list(status = 500))
               }
             }else{
