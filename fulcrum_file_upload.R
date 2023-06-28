@@ -108,3 +108,9 @@ uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filep
   return(content)
 }
 
+
+rmNullObs <- function(x) {
+  x <- Filter(Negate(is.NullOb), x)
+  lapply(x, function(x) if (is.list(x)) rmNullObs(x) else x)
+}
+
