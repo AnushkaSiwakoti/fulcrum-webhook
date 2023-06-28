@@ -9,8 +9,8 @@ library(stringr)
 library(rlist)
 
 # Source the required files
-source('get_record.R')
-source('fulcrum_file_upload.R')
+
+source('functions.R')
 
 #* @plumber
 function(pr) {
