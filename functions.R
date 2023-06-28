@@ -19,8 +19,10 @@ uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filep
   content <- httr::content(request, as = 'parsed')
   #content <- content(request)
   
-  url <- content$url
-  id <- content$id
+ with(content, {
+  url <- url
+  id <- id
+})
   
   
   
