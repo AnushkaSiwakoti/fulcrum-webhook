@@ -3,14 +3,14 @@ library(plumber)
 library(jsonlite)
 library(dplyr)
 library(glue)
+library(rlist)
 library(data.table)
 library(httr)
 library(stringr)
-library(rlist)
 
 # Source the required files
-
 source('functions.R')
+
 
 #* @plumber
 function(pr) {
