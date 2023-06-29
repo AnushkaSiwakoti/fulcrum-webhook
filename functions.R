@@ -1,3 +1,5 @@
+
+
 uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filepath,form_values,attachment_key){
   require(httr)
   require(jsonlite)
@@ -19,10 +21,8 @@ uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filep
   content <- httr::content(request, as = 'parsed')
   #content <- content(request)
   
- with(content, {
-  url <- url
-  id <- id
-})
+  url <- content$url
+  id <- content$id
   
   
   
@@ -102,7 +102,6 @@ uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filep
 
 
 
-
 #get records function 
 get_record<- function(record_id, api_token){
   require(httr)
@@ -117,9 +116,7 @@ get_record<- function(record_id, api_token){
 
 
 ## A helper function that tests whether an object is either NULL or a list of NULLs
-is.NullOb <- function(x) {
-  is.null(x) || (is.list(x) && all(sapply(x, is.NullOb)))
-}
+is.NullOb <- function(x) is.null(x) | all(sapply(x, is.null))
 
 ## Recursively step down into list, removing all such objects 
 rmNullObs <- function(x) {
