@@ -32,9 +32,9 @@ function(pr) {
         
         
         
-        if (!is.null(record$record$type) && record$record$type %in% c('record.create', 'record.update')) {
-          record_id <- record$record$id
-          form_id <- record$record$form_id
+        if (!is.null(record$type) && record$type %in% c('record.create', 'record.update')) {
+          record_id <- record$data$id
+          form_id <- record$data$form_id
           print(paste0('recordID = ', record_id))
           print(paste0('formID = ', form_id))   
           
@@ -43,9 +43,9 @@ function(pr) {
             #print(record)
             
             # Check if shipment manifest is "yes" and no attachment ID exists
-            if (!is.null(record$record$form_values$`0ce0`) && record$record$form_values$`0ce0` == "yes" && is.null(record$record$form_values$`cf80`)) {
-              print(record$record$form_values$`0ce0`)
-              print(record$record$form_values$`cf80`)
+            if (!is.null(record$data$form_values$`0ce0`) && record$data$form_values$`0ce0` == "yes" && is.null(record$data$form_values$`cf80`)) {
+              # print(record$record$form_values$`0ce0`)
+              # print(record$record$form_values$`cf80`)
               print("Creating draft manifest...")
               api_token <- Sys.getenv('FULCRUM_API_NEON')
               
