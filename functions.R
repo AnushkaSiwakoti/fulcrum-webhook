@@ -27,7 +27,8 @@ uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filep
   
   
   # put file in box
-  body <- list(key=id, value=filepath)
+  body <- split(x = filepath, f = id, drop = FALSE)
+  print(body)
   url <- paste0(url)
   
   request <- httr::PUT(url,
@@ -71,19 +72,15 @@ uploadFile <- function(api_token = Sys.getenv('FULCRUM_API_NEON'),recordid,filep
   
   #form_values[[attachmentkey]] <- list(list(name = basename(filepath), attachment_id = id))
   
-  form_values <- list(
-    attachmentkey = list(
+  attachment_value <- list(
       list(
         name = basename(filepath),
         attachment_id = id
       )
     )
-  )
   
-  field_name <- attachment_key
-  form_values[[field_name]] <- form_values$attachmentkey
-  form_values$attachmentkey <- NULL
-  
+  form_values[attachment_key] <- attachment_value
+
   body <- toJSON(list(record = list(form_values = form_values)), auto_unbox = TRUE)
   
   
