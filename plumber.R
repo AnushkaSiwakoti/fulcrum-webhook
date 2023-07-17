@@ -64,13 +64,70 @@ function(pr) {
               #print(array_parse)
               
               if (length(array_parse) > 0) {
-                draft_manifest <- data.frame(matrix(unlist(array_parse), nrow = length(array_parse), byrow = TRUE), stringsAsFactors = FALSE)
-                #print(draft_manifest)
-                colnames(draft_manifest) <- names(array_parse[[1]])
+                # Create a data frame with the main information
+                dat <- data.frame(
+                  shipDate = character(),
+                  shipmentID = character(),
+                  senderID = character(),
+                  sentTo = character(),
+                  shipmentService = character(),
+                  shipmentMethod = character(),
+                  trackingNumber = character(),
+                  quarantineSamples = character(),
+                  stringsAsFactors = FALSE
+                )
+                
+                # Add data to dat
+                dat[1, "shipDate"] <- record$record$form_values$`7561`
+                dat[1, "shipmentID"] <- record$record$form_values$`de4e`
+                dat[1, "senderID"] <- record$record$form_values$`3cf0`
+                dat[1, "sentTo"] <- record$record$form_values$`4088`
+                dat[1, "shipmentService"] <- record$record$form_values$`d296`$choice_values[[1]]
+                dat[1, "shipmentMethod"] <- record$record$form_values$`d7aa`$choice_values[[1]]
+                if (!is.null(record$record$form_values$`effd`)) {
+                  dat[1, "trackingNumber"] <- record$record$form_values$`effd`
+                } else {
+                  dat[1, "trackingNumber"] <- ""
+                }
+                dat[1, "quarantineSamples"] <- "None"
+                
+                
+                # Create an empty data frame with the same column names as dat
+                dat2 <- dat[0, ]
+                
+                for (i in 1:length(array_parse)) {
+                  sample <- array_parse[[i]]
+                  
+                  new_row <- data.frame(
+                    
+                    shipDate = "",
+                    shipmentID = "",
+                    senderID = "",
+                    sentTo = "",
+                    shipmentService = "",
+                    shipmentMethod = "",
+                    trackingNumber = "",
+                    quarantineSamples = "",
+                    sampleID = sample$`sample_barcode`,
+                    sampleCode = sample$`sample_tag`,
+                    sampleClass = sample$`sampleclass`,
+                    quarantineStatus = "N",
+                    stringsAsFactors = FALSE
+                  )
+                  
+                  dat2 <- bind_rows(dat2, new_row)
+                }
+                
+                # Combine the data frames
+                draft_manifest <- cbind(dat, dat2)
+                #draft_manifest <- data.frame(dat, dat2)
+                
+                row.names(draft_manifest) <- NULL
+                
                 draft_manifest_filename <- glue::glue("{record$record$form_values[['de4e']]}_draft_manifest.csv")
                 print(draft_manifest_filename)
                 write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
-                form_values <- record$data
+                form_values <- record$data$form_values
                 filepath <- draft_manifest_filename
                 attachment_key <- "cf80"
                 uploadFile(api_token, record_id, filepath, form_values, attachment_key)
