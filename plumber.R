@@ -27,33 +27,32 @@ function(pr) {
         return(list(error = "Body not found"))
       } else {
         print('payload found')
-        
+
         record <- jsonlite::parse_json( req$postBody)
-        
-        
-        
+
+
+
         if (!is.null(record$type) && record$type %in% c('record.create', 'record.update')) {
           record_id <- record$data$id
           form_id <- record$data$form_id
           print(paste0('recordID = ', record_id))
-          print(paste0('formID = ', form_id))   
-          
+          print(paste0('formID = ', form_id))
+
           if (!is.null(form_id) && form_id == "555deee5-7e4d-4558-8101-148dfa06d870") {
             print("Shipment creation payload found")
             #print(record)
-            
+
             # Check if shipment manifest is "yes" and no attachment ID exists
             if (!is.null(record$data$form_values$`0ce0`) && record$data$form_values$`0ce0` == "yes" && is.null(record$data$form_values$`cf80`)) {
               # print(record$record$form_values$`0ce0`)
               # print(record$record$form_values$`cf80`)
               print("Creating draft manifest...")
               api_token <- Sys.getenv('FULCRUM_API_NEON')
-              
+
               # Get the sample array from the shipment creation record
-              sample_array <- unlist(record$record$form_values$`88f2`)
+              sample_array <- unlist(record$data$form_values$`88f2`)
               #print(sample_array)
-               sample_array <- as.character(sample_array)
-              
+
               # Parse the sample array
               sample_array <- strsplit(sample_array, "|", fixed = TRUE)[[1]]
               array_parse <- list()
@@ -63,7 +62,7 @@ function(pr) {
                 array_parse <- list.append(array_parse, sample)
               }
               #print(array_parse)
-              
+
               if (length(array_parse) > 0) {
                 # Create a data frame with the main information
                 dat <- data.frame(
@@ -77,30 +76,30 @@ function(pr) {
                   quarantineSamples = character(),
                   stringsAsFactors = FALSE
                 )
-                
+
                 # Add data to dat
-                dat[1, "shipDate"] <- record$record$form_values$`7561`
-                dat[1, "shipmentID"] <- record$record$form_values$`de4e`
-                dat[1, "senderID"] <- record$record$form_values$`3cf0`
-                dat[1, "sentTo"] <- record$record$form_values$`4088`
-                dat[1, "shipmentService"] <- record$record$form_values$`d296`$choice_values[[1]]
-                dat[1, "shipmentMethod"] <- record$record$form_values$`d7aa`$choice_values[[1]]
-                if (!is.null(record$record$form_values$`effd`)) {
-                  dat[1, "trackingNumber"] <- record$record$form_values$`effd`
+                dat[1, "shipDate"] <- record$data$form_values$`7561`
+                dat[1, "shipmentID"] <- record$data$form_values$`de4e`
+                dat[1, "senderID"] <- record$data$form_values$`3cf0`
+                dat[1, "sentTo"] <-record$data$form_values$`4088`
+                dat[1, "shipmentService"] <- record$data$form_values$`d296`$choice_values[[1]]
+                dat[1, "shipmentMethod"] <- record$data$form_values$`d7aa`$choice_values[[1]]
+                if (!is.null(record$data$form_values$`effd`)) {
+                  dat[1, "trackingNumber"] <- record$data$form_values$`effd`
                 } else {
                   dat[1, "trackingNumber"] <- ""
                 }
                 dat[1, "quarantineSamples"] <- "None"
-                
-                
+
+
                 # Create an empty data frame with the same column names as dat
                 dat2 <- dat[0, ]
-                
+
                 for (i in 1:length(array_parse)) {
                   sample <- array_parse[[i]]
-                  
+
                   new_row <- data.frame(
-                    
+
                     shipDate = "",
                     shipmentID = "",
                     senderID = "",
@@ -115,17 +114,17 @@ function(pr) {
                     quarantineStatus = "N",
                     stringsAsFactors = FALSE
                   )
-                  
+
                   dat2 <- bind_rows(dat2, new_row)
                 }
-                
+
                 # Combine the data frames
                 draft_manifest <- cbind(dat, dat2)
                 #draft_manifest <- data.frame(dat, dat2)
-                
+
                 row.names(draft_manifest) <- NULL
-                
-                draft_manifest_filename <- glue::glue("{record$record$form_values[['de4e']]}_draft_manifest.csv")
+
+                draft_manifest_filename <-paste(record$record$form_values$`de4e`, "_draft_manifest.csv", sep = "")
                 print(draft_manifest_filename)
                 write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
                 form_values <- record$data$form_values
@@ -151,7 +150,7 @@ function(pr) {
             status <- 204
             return(list(error = "NOT SHIPMENT CREATION RECORD"))
           }
-        } 
+        }
         else {
           #if there's another type of webhook message (e.g. record.delete), still return a response
           print('record type incorrect')
