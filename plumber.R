@@ -52,6 +52,7 @@ function(pr) {
               # Get the sample array from the shipment creation record
               sample_array <- unlist(record$record$form_values$`88f2`)
               #print(sample_array)
+               sample_array <- as.character(sample_array)
               
               # Parse the sample array
               sample_array <- strsplit(sample_array, "|", fixed = TRUE)[[1]]
