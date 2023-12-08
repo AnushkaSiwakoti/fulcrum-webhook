@@ -1,4 +1,5 @@
 # Add required libraries
+library(tidyverse)
 library(plumber)
 library(jsonlite)
 library(dplyr)
@@ -7,6 +8,8 @@ library(rlist)
 library(data.table)
 library(httr)
 library(stringr)
+library(googleCloudStorageR)
+
 
 # Source the required files
 source('functions.R')
@@ -43,102 +46,100 @@ function(pr) {
             #print(record)
 
             # Check if shipment manifest is "yes" and no attachment ID exists
-            if (!is.null(record$data$form_values$`0ce0`) && record$data$form_values$`0ce0` == "yes" && is.null(record$data$form_values$`cf80`)) {
+            if (!is.null(record$data$form_values$`0ce0`) && record$data$form_values$`0ce0` == "yes" && is.null(record$data$form_values$`525a`)) {
               # print(record$record$form_values$`0ce0`)
               # print(record$record$form_values$`cf80`)
               print("Creating draft manifest...")
-              api_token <- Sys.getenv('FULCRUM_API_NEON')
-
+              my_path_to_gcs_key_json <- "C:/Users/lea/Documents/prod-sa-os-shipping-manifests-writer-jsonkey.json"
+              gcs_auth(json_file = my_path_to_gcs_key_json)
+              my_bucket_name <- "neon-os-shipping-manifests"
+              gcs_global_bucket(my_bucket_name)
+              manifest_list <- gcs_list_objects()
+              
               # Get the sample array from the shipment creation record
               sample_array <- unlist(record$data$form_values$`88f2`)
               #print(sample_array)
 
-              # Parse the sample array
+              # Split the sample array
               sample_array <- strsplit(sample_array, "|", fixed = TRUE)[[1]]
-              array_parse <- list()
-              for (s in 1:length(sample_array)) {
-                sample <- jsonlite::parse_json(sample_array[s])
-                sample <- rmNullObs(sample)
-                array_parse <- list.append(array_parse, sample)
-              }
-              #print(array_parse)
-
-              if (length(array_parse) > 0) {
-                # Create a data frame with the main information
-                dat <- data.frame(
-                  shipDate = character(),
-                  shipmentID = character(),
-                  senderID = character(),
-                  sentTo = character(),
-                  shipmentService = character(),
-                  shipmentMethod = character(),
-                  trackingNumber = character(),
-                  quarantineSamples = character(),
-                  stringsAsFactors = FALSE
-                )
-
-                # Add data to dat
-                dat[1, "shipDate"] <- record$data$form_values$`7561`
-                dat[1, "shipmentID"] <- record$data$form_values$`de4e`
-                dat[1, "senderID"] <- record$data$form_values$`3cf0`
-                dat[1, "sentTo"] <-record$data$form_values$`4088`
-                dat[1, "shipmentService"] <- record$data$form_values$`d296`$choice_values[[1]]
-                dat[1, "shipmentMethod"] <- record$data$form_values$`d7aa`$choice_values[[1]]
-                if (!is.null(record$data$form_values$`effd`)) {
-                  dat[1, "trackingNumber"] <- record$data$form_values$`effd`
-                } else {
-                  dat[1, "trackingNumber"] <- ""
+              if (length(sample_array) > 0) {
+                dat <- data.frame(matrix(NA, nrow = length(sample_array), ncol = 27))
+                colnames(dat) <- c("domainID", "dateShipped", "shipmentID", "senderID",
+                                   "sentTo", "shipmentService", "shipmentMethod","trackingNumber", 
+                                   "quarantineStatus","containerID","sampleID","sampleCode",
+                                   "sampleClass","sampleType","numVialsSampleID","analysisType",
+                                   "taxonID","wellCoordinates","filterVolume","sampleMass",
+                                   "containerMass","preservativeType","preservativeVolume",
+                                   "individualCount","namedlocation","collectdate","domainRemarks")
+                
+                parentVals <- record$record$form_values
+                parentFields <- c("72c0","7561","de4e","3cf0","4088","d296","d7aa",
+                                  "effd","18c0")
+                for (i in 1:length(parentFields)) {
+                  if(is.null(parentVals[[parentFields[i]]])){
+                    parentVals[parentFields[i]] <- NA
+                  }
                 }
-                dat[1, "quarantineSamples"] <- "None"
-
-
-                # Create an empty data frame with the same column names as dat
-                dat2 <- dat[0, ]
-
-                for (i in 1:length(array_parse)) {
-                  sample <- array_parse[[i]]
-
-                  new_row <- data.frame(
-
-                    shipDate = "",
-                    shipmentID = "",
-                    senderID = "",
-                    sentTo = "",
-                    shipmentService = "",
-                    shipmentMethod = "",
-                    trackingNumber = "",
-                    quarantineSamples = "",
-                    sampleID = sample$`sample_barcode`,
-                    sampleCode = sample$`sample_tag`,
-                    sampleClass = sample$`sampleclass`,
-                    quarantineStatus = "N",
-                    stringsAsFactors = FALSE
-                  )
-
-                  dat2 <- bind_rows(dat2, new_row)
+                for (i in 1:length(sample_array)) {
+                  print(i)
+                  sample <- jsonlite::parse_json(sample_array[[i]])
+                  sample <- map(sample, function(x) ifelse(is.null(x), NA, x))                  
+                  if(is.null(sample$storageCode)){
+                    sample$storageCode <- NA
+                  }
+                  
+                  dat[i,"domainID"] = parentVals$`72c0`$choice_values[[1]]
+                  dat[i,"dateShipped"] = parentVals$`7561`
+                  dat[i,"shipmentID"] = parentVals$`de4e`
+                  dat[i,"senderID"] = parentVals$`3cf0`
+                  dat[i,"sentTo"] = parentVals$`4088`
+                  dat[i,"shipmentService"] = parentVals$`d296`$choice_values[[1]]
+                  dat[i,"shipmentMethod"] = parentVals$`d7aa`$choice_values[[1]]
+                  dat[i,"trackingNumber"] = parentVals$`effd`
+                  dat[i,"quarantineStatus"] = parentVals$`18c0`$choice_values[[1]]
+                  dat[i,"containerID"] = sample$storageCode
+                  dat[i,"sampleID"] = sample$sample_barcode
+                  dat[i,"sampleCode"] = sample$sample_tag
+                  dat[i,"sampleClass"] = sample$sampleclass
+                  dat[i,"sampleType"] = sample$sample_type
+                  dat[i,"numVialsSampleID"] = sample$number_containers
+                  dat[i,"analysisType"] = sample$analysis_type
+                  dat[i,"taxonID"] = sample$taxonomy
+                  dat[i,"wellCoordinates"] = sample$well_coordinate
+                  dat[i,"filterVolume"] = sample$filter_volume
+                  dat[i,"sampleMass"] = sample$sample_mass
+                  dat[i,"containerMass"] = sample$container_mass
+                  dat[i,"preservativeType"] = sample$preservative_type
+                  dat[i,"preservativeVolume"] = sample$preservative_volume
+                  dat[i,"individualCount"] = sample$specimen_count
+                  dat[i,"namedlocation"] = sample$location
+                  dat[i,"collectdate"] = sample$collection_date
+                  dat[i,"domainRemarks"] = sample$remarks
                 }
-
-                # Combine the data frames
-                draft_manifest <- cbind(dat, dat2)
-                #draft_manifest <- data.frame(dat, dat2)
-
-                row.names(draft_manifest) <- NULL
-
-                draft_manifest_filename <-paste(record$record$form_values$`de4e`, "_draft_manifest.csv", sep = "")
-                print(draft_manifest_filename)
-                write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
-                form_values <- record$data$form_values
-                filepath <- draft_manifest_filename
-                attachment_key <- "cf80"
-                uploadFile(api_token, record_id, filepath, form_values, attachment_key)
-                print("Draft manifest created and uploaded.")
-                status <- 200
-                return(list(status = 200))
-              } else {
-                print("Draft manifest not created and uploaded.")
-                status <- 500
-                return(list(status = 500))
               }
+              draft_manifest <- Filter(function(y) !all(is.na(y)), dat)
+              row.names(draft_manifest) <- NULL
+              
+              draft_manifest_filename <-paste(record$record$form_values$`de4e`, "_draft_manifest.csv", sep = "")
+              print(draft_manifest_filename)
+              if(draft_manifest_filename %in% manifest_list$name){
+                gcs_delete_object(object_name = draft_manifest_filename)
+                
+              }
+              #write.csv(draft_manifest, file = draft_manifest_filename, row.names = FALSE)
+              gcs_upload(
+                draft_manifest,
+                name = draft_manifest_filename,
+                object_function = write_fxn,
+              )
+              record_out <- list(record = c(id = record_id, list(form_values = 
+                                                                   record$record$form_values)))
+              url <- gcs_download_url(draft_manifest_filename)
+              record_out$record$form_values["525a"] = url
+              
+              request <- put_record(record_id = record_id, body = record_out)
+              print(paste0('>>>>>> REVIEW PUT REQUEST STATUS CODE = ', request))
+              res$status <- request
             } else {
               print('draft manifest not requested')
               status <- 204
@@ -150,8 +151,7 @@ function(pr) {
             status <- 204
             return(list(error = "NOT SHIPMENT CREATION RECORD"))
           }
-        }
-        else {
+        } else {
           #if there's another type of webhook message (e.g. record.delete), still return a response
           print('record type incorrect')
           status <- 204
